@@ -1,0 +1,133 @@
+*bgr.sp
+
+.subckt bgr VDD VSS Vref
+
+.prot
+.lib "./../../Tool/cic018.l" tt
+.temp 27
+.unprot
+.option post
+
+*.param ww = 10u
+*.param ll = 0.8u
+
+*.option captab
+
+
+*main
+
+M1 Vamp_ip Vamp_out Vdd Vdd p_18 w=95u l=6u
+M2 Vamp_in Vamp_out Vdd Vdd p_18 w=95u l=6u
+M3 Vamp_ref Vamp_out Vdd Vdd p_18 w=95u l=6u
+
+R1 Vamp_in Va 15k
+R2 Vamp_ref Vb 275k
+
+Q1 Vss Vss Vamp_ip Vss pnp_v50x50 m=1
+Q2 Vss Vss Va Vss pnp_v50x50 m=4
+Q3 Vss Vss Vb Vss pnp_v50x50 m=4
+
+
+
+
+
+
+
+*2-Stage OPA
+
+M11 V1a V1a Vdd Vdd p_18 w=4.5u l=1u
+M12 V1b V1a Vdd Vdd p_18 w=4.5u l=1u
+M13 V1a Vamp_ip V1c Vss n_18 w=1.5u l=1u
+M14 V1b Vamp_in V1c Vss n_18 w=1.5u l=1u
+M15 V1c Vbias Vss Vss n_18 w=1.5u l=1u
+
+M16 V1d V1a Vdd Vdd p_18 w=4.5u l=1u
+M17 Vamp_out V1b Vdd Vdd p_18 w=4.5u l=1u
+M18 V1d V1d V1e Vss n_18 w=0.8u l=1u
+M19 Vamp_out V1d V1f Vss n_18 w=0.8u l=1u
+M20 V1e V1e Vss Vss n_18 w=0.8u l=1u
+M21 V1f V1e Vss Vss n_18 w=0.8u l=1u
+
+C11 V1b Vamp_out 1p
+C12 Vamp_out Vss 1p
+
+*Vdd Vdd 0 1.8 1
+*Vdd Vdd GND pwl(0 0 10u 0 100u 2)
+*Vss Vss 0 0 
+
+*Vbias_t Vbias_t Vss 0.45
+*Vdiff Vdiff Vss 0 1
+*VBS VBS Vss 0.7
+*E1 Vampin VBS Vdiff Vss 0.5
+*E2 Vampip VBS Vdiff Vss -0.5
+
+
+
+*Lcmfb Vamp_out2 Vamp_out 1E+100
+*Ccmfb Vamp_out Vac 1E+100
+*Vac Vac Vss ac=1
+
+
+
+
+
+
+*Constant-gm core with start-up circuit
+
+M31 Vbias V3a Vdd Vdd p_18 w=5u l=1u m=1
+M32 V3a V3a Vdd Vdd p_18 w=5u l=1u m=1
+M33 Vbias Vbias Vss Vss n_18 w=5u l=1u m=1
+M34 V3a Vbias V3b Vss n_18 w=5u l=1u m=2
+
+M35 V3c Vss Vdd Vdd p_18 w=0.25u l=10u m=1
+M36 V3d Vss V3c Vdd p_18 w=0.25u l=10u m=1
+M37 V3d Vbias Vss Vss n_18 w=40u l=10u m=1
+
+M38 V3a V3d Vss Vss n_18 w=1u l=0.5u m=1
+
+
+R31 V3b Vss 8k
+
+
+
+Ec Vref Vss Vamp_ref Vss 1
+
+
+
+
+
+*Analysis
+
+*.op
+*.tf V(Vamp_out) Vdiff
+
+*.tf V(Vamp_ref) Vdd
+*.dc Vdd 0 1.98 0.01
+*.dc temp -40 125 0.1 sweep Vdd 1.62 1.98 0.18
+*.ac dec 10 1 100G
+
+*.probe Vdb(Vamp_ref) Vp(Vamp_ref)
+*.probe dc deriv('V(Vamp_ref)')
+
+
+
+*.tran 0.01u 110u
+
+
+*.tf V(Vamp_out2) Vac
+*.pz V(Vamp_out2) Vac
+*.measure AC gain_db MAX Vdb(Vamp_out2)
+*.measure AC Bandwidth when Vdb(Vamp_out2)='gain_db-3'
+*.measure AC UGB when Vdb(Vamp_out2)=0
+*.measure AC min_phase MIN vp(Vamp_out2) from=1 to=UGB
+*.measure AC phase_margin = param ('180+min_phase')
+
+
+*.alter
+*.lib "./../../Tool/cic018.l" ff
+*.alter
+*.lib "./../../Tool/cic018.l" ss
+
+
+.ends
+
